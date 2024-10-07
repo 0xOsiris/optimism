@@ -104,9 +104,10 @@ services:
     command: >
       op-node
       --l1=ws://l1:8546
+      --l1.trustrpc
       --l1.beacon=http://l1-bn:5052
       --l1.epoch-poll-interval=12s
-      --l2=http://rollup-boost:8551
+      --l2=http://rollup-boost:8541
       --l1.http-poll-interval=6s
       --l2.jwt-secret=/config/jwt-secret.txt
       --sequencer.enabled
@@ -119,8 +120,6 @@ services:
       --p2p.listen.ip=0.0.0.0
       --p2p.listen.tcp=9003
       --p2p.listen.udp=9003
-      --p2p.scoring.peers=light
-      --p2p.ban.peers=true
       --p2p.priv.path=/config/p2p-node-key.txt
       --metrics.enabled
       --metrics.addr=0.0.0.0
@@ -287,20 +286,14 @@ services:
 
   world-chain-builder:
     build:
-      cache_from:
-        - world-chain-builder:latest
       context: .
       dockerfile: init_prestate.Dockerfile
     entrypoint:
       - "/bin/sh"
-
-    environment:
-      - JWT_SECRET_FILE=/config/jwt-secret.txt
-      - GENESIS=/genesis.json
-      - DATADIR=/db
+      - "/entrypoint.sh"
     ports:
-      - "8543:8545"
-      - "5060:6060"
+      - "8542:8542"
+      - "9060:9060"
       - "8544:8546"
       - "9551:9551"
     volumes:
@@ -324,10 +317,11 @@ services:
     command: >
       op-node
       --l1=ws://l1:8546
+      --l1.trustrpc
       --l1.beacon=http://l1-bn:5052
       --l1.epoch-poll-interval=12s
       --l1.http-poll-interval=6s
-      --l2=http://world-chain-builder:8551
+      --l2=http://world-chain-builder:8542
       --l2.jwt-secret=/config/jwt-secret.txt
       --verifier.l1-confs=0
       --rollup.config=/rollup.json
@@ -347,8 +341,8 @@ services:
       --pprof.enabled
       --rpc.enable-admin
       --safedb.path=/db
-      --altda.enabled=true
-      --altda.da-service=true
+      --altda.enabled=${ALTDA_ENABLED}
+      --altda.da-service=${ALTDA_SERVICE}
       --altda.da-server=http://da-server:3100
     ports:
       - "6544:8545"
@@ -361,7 +355,7 @@ services:
       - "${PWD}/p2p-node-key.txt:/config/p2p-node-key.txt"
       - "${PWD}/test-jwt-secret.txt:/config/jwt-secret.txt"
       - "${PWD}/../.devnet/rollup.json:/rollup.json"
-      - builder_op_log:/op_log
+      - op_log:/op_log
 
   load-test:
     depends_on:
@@ -385,15 +379,15 @@ services:
       context: .
       dockerfile: Dockerfile.rollup-boost
     ports:
-      - "8541:8551"
+      - "8541:8541"
     volumes:
       - "${PWD}/test-jwt-secret.txt:/config/jwt-secret.txt"
     entrypoint:
       - "/app/rollup-boost"
       - "--jwt-path=/config/jwt-secret.txt"
       - "--l2-url=http://l2:8551"
-      - "--builder-url=http://world-chain-builder:8551"
-      - "--rpc-port=8551"
+      - "--builder-url=http://world-chain-builder:8547"
+      - "--rpc-port=8541"
       - "--rpc-host=0.0.0.0"
       - "--boost-sync"
       - "--log-level=debug"
