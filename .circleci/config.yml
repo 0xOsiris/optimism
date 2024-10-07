@@ -222,7 +222,7 @@ jobs:
           condition: <<parameters.notify>>
           steps:
             - notify-failures-on-develop:
-                mentions: "@proofs-squad"
+                mentions: "@proofs-team"
 
   cannon-build-test-vectors:
     docker:
@@ -721,6 +721,8 @@ jobs:
           command: interfaces-check-no-build
       - run-contracts-check:
           command: size-check
+      - run-contracts-check:
+          command: unused-imports-check-no-build
 
   contracts-bedrock-validate-spacers:
     docker:
@@ -1142,7 +1144,7 @@ jobs:
               exit 1
             fi
       - notify-failures-on-develop:
-          mentions: "@proofs-squad"
+          mentions: "@proofs-team"
 
   cannon-stf-verify:
     docker:
@@ -1269,7 +1271,7 @@ jobs:
             make verify-sepolia
           working_directory: op-program
       - notify-failures-on-develop:
-          mentions: "@proofs-squad"
+          mentions: "@proofs-team"
 
   op-program-compat:
     docker:
@@ -1726,7 +1728,7 @@ workflows:
           target: test-cannon
           parallelism: 8
           notify: true
-          mentions: "@proofs-squad"
+          mentions: "@proofs-team"
           requires:
             - contracts-bedrock-build
             - cannon-prestate
