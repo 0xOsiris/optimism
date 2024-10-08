@@ -83,7 +83,7 @@ services:
       - "l2_data:/db"
       - "${PWD}/../.devnet/genesis-l2.json:/genesis.json"
       - "${PWD}/test-jwt-secret.txt:/config/jwt-secret.txt"
-    entrypoint:  # pass the L2 specific flags by overriding the entry-point and adding extra arguments
+    entrypoint: # pass the L2 specific flags by overriding the entry-point and adding extra arguments
       - "/bin/sh"
       - "/entrypoint.sh"
     environment:
@@ -94,7 +94,6 @@ services:
       - l1
       - l1-bn
       - l1-vc
-      - l2
       - rollup-boost
     build:
       context: ../
@@ -306,8 +305,6 @@ services:
       - l1
       - l1-bn
       - l1-vc
-      - l2
-      - rollup-boost
       - world-chain-builder
     build:
       context: ../
@@ -321,7 +318,7 @@ services:
       --l1.beacon=http://l1-bn:5052
       --l1.epoch-poll-interval=12s
       --l1.http-poll-interval=6s
-      --l2=http://world-chain-builder:8542
+      --l2=http://world-chain-builder:8547
       --l2.jwt-secret=/config/jwt-secret.txt
       --verifier.l1-confs=0
       --rollup.config=/rollup.json
@@ -373,6 +370,24 @@ services:
       - "--sk=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
       - "--rpc=http://l2:8545"
       - "--rpc2=http://world-chain-builder:8545"
+
+  # rollup-boost:
+  #   depends_on:
+  #     - l2
+  #     - world-chain-builder
+  #   image: rollup-boost:latest
+  #   ports:
+  #     - "8541:8541"
+  #   volumes:
+  #     - "${PWD}/test-jwt-secret.txt:/config/jwt-secret.txt"
+  #   entrypoint:
+  #     - "/usr/local/bin/rollup-boost"
+  #     - "--jwt-path=/config/jwt-secret.txt"
+  #     - "--l2-url=http://l2:8551"
+  #     - "--builder-url=http://world-chain-builder:8547"
+  #     - "--rpc-port=8541"
+  #     - "--boost-sync"
+  #     - "--log-level=debug"
 
   rollup-boost:
     build:

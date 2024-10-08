@@ -285,7 +285,7 @@ def devnet_deploy(paths):
 
     # Bring up the rest of the services.
     log.info('Bringing up `op-node`, `op-proposer` and `op-batcher`.')
-    run_command(['docker', 'compose', 'up', '-d', 'op-node', 'op-proposer', 'op-batcher', 'artifact-server', 'op-node-builder', 'rollup-boost', 'load-test'], cwd=paths.ops_bedrock_dir, env=docker_env)
+    run_command(['docker', 'compose', 'up', '-d', 'op-node', 'op-proposer', 'op-batcher', 'artifact-server', 'op-node-builder', 'rollup-boost'], cwd=paths.ops_bedrock_dir, env=docker_env)
 
 
     # Optionally bring up op-challenger.
