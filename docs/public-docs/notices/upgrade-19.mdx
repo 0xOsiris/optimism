@@ -89,7 +89,7 @@ Because Upgrade 19 includes hard fork changes (Osaka on L2 and Glamsterdam Defen
   **OP Sepolia:**
   Due to a bug in op-reth, the Karst activation timestamp is **not** loaded from the Superchain Registry for `op-sepolia` and `op`. You must configure it manually by providing a genesis file passed via `--chain <path-to-genesis.json>`. Download the pre-built genesis file and pass it directly — do not edit the file.
 
-  * **OP Sepolia**: [Download genesis.json](https://drive.google.com/file/d/13aHDba8O25KPq6uSbzS3ix7abKHjE48q/view)
+  * **OP Sepolia**: [Download genesis.json](https://storage.googleapis.com/oplabs-opc-artifacts/chains/op-sepolia/genesis-karst.json)
 
   <Warning>
     With `op-reth v2.3.1`, the genesis file must **not** include an `osakaTime` field. The pre-built file linked above is compatible with `op-reth v2.3.1` as-is. Both the SCR loading bug and this restriction will be fixed in a following op-reth release so this won't be necessary for OP Mainnet.
@@ -123,6 +123,22 @@ Update the following components:
 | `op-contracts` | `v7.0.0` | Required for L2CM, OPCMv2, and `CANNON_KONA` respected game type support. |
 | `rollup-boost` | [`v0.7.15`](https://github.com/flashbots/rollup-boost/releases/tag/rollup-boost%2Fv0.7.15) | Only if running Flashblocks. Must be updated **prior** to the activation timestamp. |
 | `op-rbuilder` | [`v0.4.8`](https://github.com/flashbots/op-rbuilder/releases/tag/op-rbuilder%2Fv0.4.8) | Only if running Flashblocks. Must be updated **prior** to the activation timestamp. |
+
+### For permissioned fault proof chains
+
+Chains running **permissioned** fault proofs (game type `PERMISSIONED`) do not need the full permissionless setup below, but `op-challenger` still requires a cannon prestate to be configured at startup even though the legacy `CANNON` (0) prestate is not used after the upgrade.
+
+If you are currently passing `--prestates-url=<YOUR_PRESTATE_URL>`, replace it with a placeholder cannon prestate:
+
+```bash
+--cannon-prestate=any-string
+# or
+OP_CHALLENGER_CANNON_PRESTATE=any-string
+```
+
+<Info>
+  This value is a placeholder only — permissioned chains do not generate `CANNON` (0) trace data, so the prestate is never loaded. Your `cannon-kona` prestate configuration is unaffected.
+</Info>
 
 ### For permissionless fault proof enabled chains
 
@@ -229,15 +245,36 @@ If your chain was already configured for `cannon-kona` as part of [Upgrade 18](/
 
   Build `kona-host` from the same release as the configured cannon-kona prestate.
   </Step>
+
+  <Step title="Execute the L1 Contract Upgrade">
+  Once your infrastructure is ready, execute the upgrade transaction. This should be done by making a delegatecall to the `upgrade()` function of the OP Contracts Manager (OPCMv2) at the address that will be listed in [the registry](https://github.com/ethereum-optimism/superchain-registry/blob/main/validation/standard/standard-versions-mainnet.toml).
+
+  Please simulate and validate the expected output prior to executing the transaction.
+  </Step>
+
+  <Step title="Update op-proposer to use CANNON_KONA game type">
+  After the L1 contract upgrade executes, the respected game type changes from `CANNON` (0) to `CANNON_KONA` (8) on-chain. `op-proposer` must be reconfigured to submit proposals against the new game type, or it will begin failing immediately after the upgrade.
+
+  Set the game type to `8` in your proposer configuration:
+
+  ```bash
+  OP_PROPOSER_GAME_TYPE=8
+  # or
+  --game-type=8
+  ```
+
+  Update this before or immediately after the contract upgrade executes to avoid a gap in proposal submissions.
+  </Step>
 </Steps>
 
-### Execute the L1 Contract Upgrade
-
-Once your infrastructure is ready, execute the upgrade transaction. This should be done by making a delegatecall to the `upgrade()` function of the OP Contracts Manager (OPCMv2) at the address that will be listed in [the registry](https://github.com/ethereum-optimism/superchain-registry/blob/main/validation/standard/standard-versions-mainnet.toml).
-
-Please simulate and validate the expected output prior to executing the transaction.
-
 ## For app developers
+
+<Warning>
+  OP Stack Sepolia testnet chains have a bug affecting calls to `eth_estimateGas` when the `gas` parameter is omitted after Karst.
+  If you use `eth_estimateGas`, providing an explicit `gas` parameter is required.
+  Only post-Karst Sepolia OP Stack chains are impacted.
+  This will be fixed on OP Sepolia within the coming days and will be fixed prior to Karst activation on OP Mainnet.
+</Warning>
 
 * **EIP-7825 transaction gas limit (Osaka on L2):** L2 transactions are now subject to a per-transaction gas limit of 2^24 = 16,777,216 gas. If your application submits transactions with very high gas limits, verify they remain within the new threshold. Deposit transactions are exempt. Most applications will not be affected.
 * **MODEXP gas changes ([EIP-7883](https://eips.ethereum.org/EIPS/eip-7883) + [EIP-7823](https://eips.ethereum.org/EIPS/eip-7823), Osaka on L2):** the gas cost floor for `MODEXP` (`0x05`) increases, and a new input size cap (1024-byte modulus) is enforced. If your contracts call `MODEXP`, update your gas estimates and verify inputs are within the new size limit.
