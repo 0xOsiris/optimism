@@ -151,7 +151,21 @@ impl<EngineClient_: EngineClient> ConsolidateTask<EngineClient_> {
     ) -> Result<(), ConsolidateTaskError> {
         match &self.input {
             ConsolidateInput::Attributes(attributes) => {
-                self.execute_build_and_seal_tasks(state, attributes).await
+                // `build_and_seal` can only succeed when building directly on top of the current
+                // unsafe head: the seal task requires the built block's parent to equal the unsafe
+                // head, otherwise it fails fatally with `UnsafeHeadChangedSinceBuild`. When the
+                // local unsafe head has diverged from the block we're consolidating (e.g. an
+                // orphaned fork left by a sequencer leadership split, where the unsafe chain is
+                // ahead on a non-canonical branch), that build is guaranteed to fail. Instead,
+                // reconcile the unsafe chain down to the safe head and let EL sync re-fetch the
+                // canonical chain — the same recovery used for the `BlockInfo` path below.
+                if attributes.parent.block_info.hash !=
+                    state.sync_state.unsafe_head().block_info.hash
+                {
+                    self.reconcile_to_safe_head(state, &attributes.parent).await
+                } else {
+                    self.execute_build_and_seal_tasks(state, attributes).await
+                }
             }
             ConsolidateInput::BlockInfo(safe_l2) => {
                 self.reconcile_to_safe_head(state, safe_l2).await
